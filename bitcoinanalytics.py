@@ -1,9 +1,4 @@
 
-# coding: utf-8
-
-# In[2]:
-
-
 import pandas as pd
 import pandas_datareader.data as web
 import numpy as np
@@ -54,11 +49,11 @@ plt.figure(figsize=(14, 7))
 plt.plot(btc_adj.index, btc_adj, lw=3, alpha=0.8,label='Original observations')
 plt.plot(btc_adj.index, roll_d10, lw=3, alpha=0.8,label='Rolling mean (window 10)')
 plt.plot(btc_adj.index, roll_d50, lw=3, alpha=0.8,label='Rolling mean (window 50)')
-plt.plot(signals.loc[signals.positions == 1.0].index, 
+plt.plot(signals.loc[signals.positions == 1.0].index,
          signals.short_mavg[signals.positions == 1.0],
          '^', markersize=10, color='r', label='buy')
-         
-plt.plot(signals.loc[signals.positions == -1.0].index, 
+
+plt.plot(signals.loc[signals.positions == -1.0].index,
          signals.short_mavg[signals.positions == -1.0],
          'v', markersize=10, color='k', label='sell')
 plt.title('BTC-USD Adj Close Price (The Technical Approach)')
@@ -71,11 +66,11 @@ plt.figure(figsize=(14, 7))
 plt.plot(btc_adj.index, btc_adj, lw=3, alpha=0.8,label='Original observations')
 plt.plot(btc_adj.index, roll_d10, lw=3, alpha=0.8,label='Rolling mean (window 10)')
 plt.plot(btc_adj.index, roll_d50, lw=3, alpha=0.8,label='Rolling mean (window 50)')
-plt.plot(signals.loc[signals.positions == 1.0].index, 
+plt.plot(signals.loc[signals.positions == 1.0].index,
          signals.short_mavg[signals.positions == 1.0],
          '^', markersize=10, color='r', label='buy')
-         
-plt.plot(signals.loc[signals.positions == -1.0].index, 
+
+plt.plot(signals.loc[signals.positions == -1.0].index,
          signals.short_mavg[signals.positions == -1.0],
          'v', markersize=10, color='k', label='sell')
 plt.title('BTC-USD Adj Close Price (The Value Approach)')
@@ -83,3 +78,38 @@ plt.tick_params(labelsize=12)
 plt.legend(loc='upper left', fontsize=12)
 plt.show()
 
+#exponential moving average
+
+exponential_weighted_mean = btc_recent.resample('D').sum().ewm(span=10).mean()
+sma_d10 = btc_recent.rolling(window=10).mean()
+ax = btc_recent.plot(lw=3, figsize=(14, 7), label='Original observations')
+exponential_weighted_mean.plot(ax=ax, lw=3, label='EMA (window 10)')
+sma_d10.plot(ax=ax, lw=3, label='SMA (window 10)')
+plt.title('BTC-USD Adj Close Price 2017-10-01 to 2017-12-27', fontsize=16)
+plt.tick_params(labelsize=12)
+plt.legend(loc='upper left', fontsize=12)
+plt.show()
+
+#Dual moving average computed with crossover being observed for original observations with window 10 and exponential moving average with span 10 if original observation rises above exponential moving average buy else sell
+
+exp_weighted_mean = btc_recent.resample('D').sum().ewm(span=20).mean()
+signals_ema = pd.DataFrame(index=btc_recent.index)
+signals_ema['signal'] = 0.0
+signals_ema['original'] = btc_recent
+signals_ema['EMA'] = exp_weighted_mean
+signals_ema['signal'] = np.where(signals_ema['original'] > signals_ema['EMA'], 1.0, 0.0)
+signals_ema['positions'] = signals_ema['signal'].diff()
+plt.figure(figsize=(14, 7))
+ax = btc_recent.plot(lw=3, figsize=(14, 7), label='Original observations')
+exp_weighted_mean.plot(ax=ax, lw=3, label='Exponentially weighted mean')
+plt.plot(signals_ema.loc[signals_ema.positions == 1.0].index,
+         signals_ema.EMA[signals_ema.positions == 1.0],
+         '^', markersize=10, color='r', label='buy')
+
+plt.plot(signals_ema.loc[signals_ema.positions == -1.0].index,
+         signals_ema.EMA[signals_ema.positions == -1.0],
+         'v', markersize=10, color='k', label='sell')
+plt.title('BTC-USD Adj Close Price (EMA Trading Strategy)')
+plt.tick_params(labelsize=12)
+plt.legend(loc='upper left', fontsize=12)
+plt.show()
